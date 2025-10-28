@@ -7,8 +7,9 @@ import { VerificationResultScreen } from '../screens/VerificationResultScreen';
 import { VaultScreen } from '../screens/VaultScreen';
 import { ShareProofScreen } from '../screens/ShareProofScreen';
 import { colors } from '../theme';
+import type { RootStackParamList } from '../types/navigation';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
   return (
@@ -16,13 +17,9 @@ export const AppNavigator = () => {
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
-          headerStyle: {
-            backgroundColor: colors.background,
-          },
+          headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.aquaPrimary,
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
+          headerTitleStyle: { fontWeight: '600' },
           headerShadowVisible: false,
         }}
       >

@@ -14,18 +14,14 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { colors, typography, spacing } from '../theme';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
-import { Document, DocumentStatus } from '../types';
+
+import type { RootNavigationProp, RootRouteProp } from '../types/navigation';
 
 type VerificationResultScreenProps = {
-  navigation: NativeStackNavigationProp<any>;
-  route: {
-    params: {
-      status: DocumentStatus;
-      document?: Document;
-      message?: string;
-    };
-  };
+  navigation: RootNavigationProp<'VerificationResult'>;
+  route: RootRouteProp<'VerificationResult'>;
 };
+
 
 export const VerificationResultScreen: React.FC<VerificationResultScreenProps> = ({
   navigation,

@@ -17,6 +17,13 @@ import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Document } from '../types';
 
+import type { RootNavigationProp, RootRouteProp } from '../types/navigation';
+
+type VerificationResultScreenProps = {
+  navigation: RootNavigationProp<'VerificationResult'>;
+  route: RootRouteProp<'VerificationResult'>;
+};
+
 type ShareProofScreenProps = {
   navigation: NativeStackNavigationProp<any>;
   route: {

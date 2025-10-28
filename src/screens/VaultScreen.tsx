@@ -1,121 +1,84 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   FlatList,
-  TouchableOpacity,
   TextInput,
+  TouchableOpacity,
+  Text,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, typography, spacing } from '../theme';
-import { Badge } from '../components/common/Badge';
+import { DocumentCard } from '../components/document/DocumentCard';
+import { DocumentPreview } from '../components/document/DocumentPreview';
+import { ShareModal } from '../components/modals/ShareModal';
+import { BottomSheet } from '../components/modals/BottomSheet';
+import { colors, spacing, typography } from '../theme';
 import { Document } from '../types';
+import { useDocuments } from '../hooks/useDocuments';
+import { RootStackParamList } from '../types/navigation';
 
-type VaultScreenProps = {
-  navigation: NativeStackNavigationProp<any>;
+//  Navigation type
+type EnhancedVaultScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'Vault'
+>;
+
+type EnhancedVaultScreenProps = {
+  navigation: EnhancedVaultScreenNavigationProp;
 };
 
-// Mock data - replace with actual storage service
-const mockDocuments: Document[] = [
-  {
-    id: '1',
-    title: 'AI Ethics Research',
-    author: 'John Doe',
-    institution: 'MIT',
-    timestamp: Date.now() - 86400000 * 2,
-    hash: '0x8f3a...c912',
-    status: 'verified',
-    witnesses: 5,
-    filePath: '',
-    fileSize: 2400000,
-  },
-  {
-    id: '2',
-    title: 'Quantum Computing Paper',
-    author: 'Jane Smith',
-    institution: 'Stanford',
-    timestamp: Date.now() - 86400000 * 4,
-    hash: '0x7b2c...d823',
-    status: 'verified',
-    witnesses: 3,
-    filePath: '',
-    fileSize: 1800000,
-  },
-  {
-    id: '3',
-    title: 'Climate Study Draft',
-    author: 'Bob Johnson',
-    timestamp: Date.now() - 86400000 * 7,
-    hash: '0x6a1b...e734',
-    status: 'pending',
-    filePath: '',
-    fileSize: 3200000,
-  },
-];
-
-export const VaultScreen: React.FC<VaultScreenProps> = ({ navigation }) => {
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments);
+export const EnhancedVaultScreen: React.FC<EnhancedVaultScreenProps> = ({
+  navigation,
+}) => {
+  const { documents, deleteDocument } = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredDocs, setFilteredDocs] = useState<Document[]>(mockDocuments);
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
-  useEffect(() => {
-    if (searchQuery) {
-      const filtered = documents.filter(
-        doc =>
-          doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          doc.author.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredDocs(filtered);
-    } else {
-      setFilteredDocs(documents);
-    }
-  }, [searchQuery, documents]);
+  //  Search Filtering
+  const filteredDocs = documents.filter(
+    (doc) =>
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.author.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+  //  Handlers
+  const handleDocumentPress = (doc: Document) => {
+    navigation.navigate('VerificationResult', {
+      status: doc.status,
+      document: doc,
     });
   };
 
-  const renderDocument = ({ item }: { item: Document }) => (
-    <TouchableOpacity
-      style={styles.documentCard}
-      onPress={() =>
-        navigation.navigate('VerificationResult', {
-          status: item.status,
-          document: item,
-        })
-      }
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardHeader}>
-        <Badge status={item.status} />
-      </View>
+  const handleShare = (doc: Document) => {
+    setSelectedDoc(doc);
+    setShareModalVisible(true);
+  };
 
-      <Text style={styles.documentTitle}>{item.title}</Text>
-      <Text style={styles.documentDate}>{formatDate(item.timestamp)}</Text>
+  const handlePreview = (doc: Document) => {
+    setSelectedDoc(doc);
+    setPreviewVisible(true);
+  };
 
-      <View style={styles.cardActions}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>View</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>Share</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuButton}>
-          <Text style={styles.menuIcon}>•••</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+  const handleMenu = (doc: Document) => {
+    setSelectedDoc(doc);
+    setMenuVisible(true);
+  };
+
+  const handleDelete = async () => {
+    if (selectedDoc) {
+      await deleteDocument(selectedDoc.id);
+      setMenuVisible(false);
+      setSelectedDoc(null);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>My Documents</Text>
         <TouchableOpacity
@@ -141,21 +104,113 @@ export const VaultScreen: React.FC<VaultScreenProps> = ({ navigation }) => {
       {/* Documents List */}
       <FlatList
         data={filteredDocs}
-        renderItem={renderDocument}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <DocumentCard
+            document={item}
+            onPress={() => handleDocumentPress(item)}
+            onShare={() => handleShare(item)}
+            onMenu={() => handleMenu(item)}
+          />
+        )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📄</Text>
-            <Text style={styles.emptyText}>No documents yet</Text>
-            <Text style={styles.emptySubtext}>
-              Upload your first paper to get started
-            </Text>
-          </View>
-        }
       />
+
+      {/* Document Preview Modal */}
+      {selectedDoc && (
+        <DocumentPreview
+          document={selectedDoc}
+          visible={previewVisible}
+          onClose={() => setPreviewVisible(false)}
+        />
+      )}
+
+      {/* Share Modal */}
+      {selectedDoc && (
+        <ShareModal
+          visible={shareModalVisible}
+          onClose={() => setShareModalVisible(false)}
+          document={selectedDoc}
+        />
+      )}
+
+      {/* Menu Bottom Sheet */}
+      {selectedDoc && (
+        <BottomSheet
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+          title="Document Options"
+          height="50%"
+        >
+          <View style={styles.menuContent}>
+            <TouchableOpacity
+              style={styles.menuOption}
+              onPress={() => {
+                handlePreview(selectedDoc);
+                setMenuVisible(false);
+              }}
+            >
+              <Text style={styles.menuIcon}>👁️</Text>
+              <Text style={styles.menuLabel}>Preview Document</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuOption}
+              onPress={() => {
+                handleDocumentPress(selectedDoc);
+                setMenuVisible(false);
+              }}
+            >
+              <Text style={styles.menuIcon}>ℹ️</Text>
+              <Text style={styles.menuLabel}>View Details</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuOption}
+              onPress={() => {
+                handleShare(selectedDoc);
+                setMenuVisible(false);
+              }}
+            >
+              <Text style={styles.menuIcon}>📤</Text>
+              <Text style={styles.menuLabel}>Share Proof</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuOption}
+              onPress={() => {
+                // TODO: Implement re-verification logic
+                setMenuVisible(false);
+              }}
+            >
+              <Text style={styles.menuIcon}>🔄</Text>
+              <Text style={styles.menuLabel}>Re-verify</Text>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={[styles.menuOption, styles.menuOptionDanger]}
+              onPress={handleDelete}
+            >
+              <Text style={styles.menuIcon}>🗑️</Text>
+              <Text style={styles.menuLabelDanger}>Delete Document</Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheet>
+      )}
     </SafeAreaView>
+  );
+};
+
+// Ensure this file exports VaultScreen
+export const VaultScreen = () => {
+  return (
+    <div>
+      {/* Add your VaultScreen implementation here */}
+      Vault Screen Content
+    </div>
   );
 };
 
@@ -212,75 +267,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xxl,
     paddingBottom: spacing.xxl,
   },
-  documentCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+  menuContent: {
+    flex: 1,
   },
-  cardHeader: {
-    marginBottom: spacing.sm,
-  },
-  documentTitle: {
-    ...typography.headline2,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  documentDate: {
-    ...typography.bodyRegular,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-  },
-  cardActions: {
+  menuOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-  },
-  actionButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.aquaPrimary,
-  },
-  actionButtonText: {
-    ...typography.bodyRegular,
-    color: colors.aquaPrimary,
-    fontWeight: '500',
-  },
-  menuButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 'auto',
-  },
-  menuIcon: {
-    fontSize: 18,
-    color: colors.textSecondary,
-    fontWeight: '700',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxxl * 2,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: spacing.lg,
-    opacity: 0.5,
-  },
-  emptyText: {
-    ...typography.headline2,
-    color: colors.textSecondary,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    borderRadius: 12,
     marginBottom: spacing.sm,
   },
-  emptySubtext: {
-    ...typography.bodyRegular,
-    color: colors.textTertiary,
+  menuOptionDanger: {
+    backgroundColor: colors.errorBg,
+  },
+  menuIcon: {
+    fontSize: 24,
+    marginRight: spacing.md,
+  },
+  menuLabel: {
+    ...typography.bodyLarge,
+    color: colors.textPrimary,
+    fontWeight: '500',
+  },
+  menuLabelDanger: {
+    color: colors.error,
+    ...typography.bodyLarge,
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.lg,
   },
 });

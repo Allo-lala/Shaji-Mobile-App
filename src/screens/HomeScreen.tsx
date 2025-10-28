@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing } from '../theme';
-import { Button } from '../components/common/Button';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<any>;
