@@ -8,6 +8,7 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 // import DocumentPicker from 'react-native-document-picker';
 import { pick, types } from '@react-native-documents/picker';
@@ -17,6 +18,7 @@ import { colors, typography, spacing } from '../theme';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import aquaService from '../services/aquaService';
+// import React from 'react';
 
 type UploadScreenProps = {
   navigation: NativeStackNavigationProp<any>;
@@ -38,6 +40,7 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ navigation }) => {
     } catch (err: any) {
       if (!pick(err)) {
         console.error(err);
+        Alert.alert('Error', 'Failed to select document');
       }
     }
   };
@@ -144,8 +147,8 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ navigation }) => {
             </Card>
           )}
 
-          {/* Author Details */}
-          <Text style={styles.sectionTitle}>Author Details</Text>
+          {/*  Details */}
+          <Text style={styles.sectionTitle}> Details</Text>
           
           <TextInput
             style={styles.input}

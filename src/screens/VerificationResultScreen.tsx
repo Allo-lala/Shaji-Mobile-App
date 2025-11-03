@@ -215,7 +215,7 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
               <Text style={styles.unverifiedTitle}>
                 This document may be:
               </Text>
-              <Text style={styles.unverifiedItem}>• Not yet notarized</Text>
+              <Text style={styles.unverifiedItem}>• Not notarized</Text>
               <Text style={styles.unverifiedItem}>
                 • Modified after notarization
               </Text>
