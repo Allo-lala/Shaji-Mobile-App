@@ -9,7 +9,9 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import DocumentPicker from 'react-native-document-picker';
+// import DocumentPicker from 'react-native-document-picker';
+import { pick, types } from '@react-native-documents/picker';
+
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing } from '../theme';
 import { Button } from '../components/common/Button';
@@ -29,12 +31,12 @@ export const UploadScreen: React.FC<UploadScreenProps> = ({ navigation }) => {
 
   const pickDocument = async () => {
     try {
-      const result = await DocumentPicker.pickSingle({
-        type: [DocumentPicker.types.pdf],
+      const response = await pick ({
+        type: [types.allFiles],
       });
-      setDocument(result);
-    } catch (err) {
-      if (!DocumentPicker.isCancel(err)) {
+      console.log(response);
+    } catch (err: any) {
+      if (!pick(err)) {
         console.error(err);
       }
     }
