@@ -5,6 +5,7 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing } from '../theme';
@@ -19,9 +20,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <View style={styles.content}>
         {/* Logo */}
         <View style={styles.logoContainer}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>🌊</Text>
-          </View>
+          <Image
+            source={require("../../assets/shaji.png")} // logo here
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Title */}
@@ -82,16 +85,10 @@ const styles = StyleSheet.create({
   logoContainer: {
     marginBottom: spacing.xl,
   },
-  logo: {
+  logoImage: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.aquaPrimary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 40,
   },
   title: {
     ...typography.displayLarge,

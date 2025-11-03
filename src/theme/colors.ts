@@ -1,8 +1,9 @@
 export const colors = {
   // Primary
-  aquaPrimary: '#06B6D4',
-  aquaDeep: '#0891B2',
+  aquaPrimary: '#0636d4ff',
+  aquaDeep: '#0852b2ff',
   aquaLight: '#67E8F9',
+  white: '#FFFFFF', 
   
   // Status
   success: '#10B981',
