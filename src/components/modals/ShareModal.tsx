@@ -227,7 +227,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             network and never expires.
           </Text>
           <Text style={styles.footerBrand}>
-            🌊 Powered by Aqua Protocol
+             Powered by Aqua Protocol
           </Text>
         </View>
       </ScrollView>

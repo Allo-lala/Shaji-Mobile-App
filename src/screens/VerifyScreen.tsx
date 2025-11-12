@@ -122,7 +122,7 @@ export const VerifyScreen: React.FC<VerifyScreenProps> = ({ navigation }) => {
 
           {/* Method 1: Upload Document */}
           <Card style={styles.methodCard}>
-            <Text style={styles.methodTitle}>📄 Method 1: Upload Document</Text>
+            <Text style={styles.methodTitle}>📄 Option 1: Upload Document</Text>
             <Text style={styles.methodDescription}>
               Select a PDF or image to verify its authenticity
             </Text>
@@ -176,7 +176,7 @@ export const VerifyScreen: React.FC<VerifyScreenProps> = ({ navigation }) => {
 
           {/* Method 2: Verification Code */}
           <Card style={styles.methodCard}>
-            <Text style={styles.methodTitle}>🔗 Method 2: Verification Code</Text>
+            <Text style={styles.methodTitle}>🔗 Option 2: Verification Code</Text>
             <Text style={styles.methodDescription}>
               Enter a verification code or hash to check authenticity
             </Text>
