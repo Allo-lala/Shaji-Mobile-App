@@ -1,51 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   SafeAreaView,
   FlatList,
-  TextInput,
   TouchableOpacity,
-  Text,
+  TextInput,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { colors, typography, spacing } from '../theme';
 import { DocumentCard } from '../components/document/DocumentCard';
-import { DocumentPreview } from '../components/document/DocumentPreview';
 import { ShareModal } from '../components/modals/ShareModal';
 import { BottomSheet } from '../components/modals/BottomSheet';
-import { colors, spacing, typography } from '../theme';
 import { Document } from '../types';
 import { useDocuments } from '../hooks/useDocuments';
-import { RootStackParamList } from '../types/navigation';
 
-//  Navigation type
-type EnhancedVaultScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Vault'
->;
-
-type EnhancedVaultScreenProps = {
-  navigation: EnhancedVaultScreenNavigationProp;
+type VaultScreenProps = {
+  navigation: NativeStackNavigationProp<any>;
 };
 
-export const EnhancedVaultScreen: React.FC<EnhancedVaultScreenProps> = ({
-  navigation,
-}) => {
-  const { documents, deleteDocument } = useDocuments();
+export const VaultScreen: React.FC<VaultScreenProps> = ({ navigation }) => {
+  const { documents, loading, deleteDocument } = useDocuments();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filteredDocs, setFilteredDocs] = useState<Document[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
-  const [previewVisible, setPreviewVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  //  Search Filtering
-  const filteredDocs = documents.filter(
-    (doc) =>
-      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.author.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const filtered = documents.filter(
+        (doc) =>
+          doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          doc.author.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredDocs(filtered);
+    } else {
+      setFilteredDocs(documents);
+    }
+  }, [searchQuery, documents]);
 
-  //  Handlers
   const handleDocumentPress = (doc: Document) => {
     navigation.navigate('VerificationResult', {
       status: doc.status,
@@ -58,11 +55,6 @@ export const EnhancedVaultScreen: React.FC<EnhancedVaultScreenProps> = ({
     setShareModalVisible(true);
   };
 
-  const handlePreview = (doc: Document) => {
-    setSelectedDoc(doc);
-    setPreviewVisible(true);
-  };
-
   const handleMenu = (doc: Document) => {
     setSelectedDoc(doc);
     setMenuVisible(true);
@@ -70,15 +62,38 @@ export const EnhancedVaultScreen: React.FC<EnhancedVaultScreenProps> = ({
 
   const handleDelete = async () => {
     if (selectedDoc) {
-      await deleteDocument(selectedDoc.id);
-      setMenuVisible(false);
-      setSelectedDoc(null);
+      Alert.alert(
+        'Delete Document',
+        `Are you sure you want to delete "${selectedDoc.title}"?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              await deleteDocument(selectedDoc.id);
+              setMenuVisible(false);
+              setSelectedDoc(null);
+            },
+          },
+        ]
+      );
     }
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.aquaPrimary} />
+          <Text style={styles.loadingText}>Loading documents...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>My Documents</Text>
         <TouchableOpacity
@@ -99,6 +114,11 @@ export const EnhancedVaultScreen: React.FC<EnhancedVaultScreenProps> = ({
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Text style={styles.clearIcon}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Documents List */}
@@ -115,16 +135,22 @@ export const EnhancedVaultScreen: React.FC<EnhancedVaultScreenProps> = ({
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>📄</Text>
+            <Text style={styles.emptyText}>No documents yet</Text>
+            <Text style={styles.emptySubtext}>
+              Upload or verify your first paper to get started
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              onPress={() => navigation.navigate('Upload')}
+            >
+              <Text style={styles.emptyButtonText}>Upload Paper</Text>
+            </TouchableOpacity>
+          </View>
+        }
       />
-
-      {/* Document Preview Modal */}
-      {selectedDoc && (
-        <DocumentPreview
-          document={selectedDoc}
-          visible={previewVisible}
-          onClose={() => setPreviewVisible(false)}
-        />
-      )}
 
       {/* Share Modal */}
       {selectedDoc && (
@@ -147,17 +173,6 @@ export const EnhancedVaultScreen: React.FC<EnhancedVaultScreenProps> = ({
             <TouchableOpacity
               style={styles.menuOption}
               onPress={() => {
-                handlePreview(selectedDoc);
-                setMenuVisible(false);
-              }}
-            >
-              <Text style={styles.menuIcon}>👁️</Text>
-              <Text style={styles.menuLabel}>Preview Document</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuOption}
-              onPress={() => {
                 handleDocumentPress(selectedDoc);
                 setMenuVisible(false);
               }}
@@ -177,17 +192,6 @@ export const EnhancedVaultScreen: React.FC<EnhancedVaultScreenProps> = ({
               <Text style={styles.menuLabel}>Share Proof</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.menuOption}
-              onPress={() => {
-                // TODO: Implement re-verification logic
-                setMenuVisible(false);
-              }}
-            >
-              <Text style={styles.menuIcon}>🔄</Text>
-              <Text style={styles.menuLabel}>Re-verify</Text>
-            </TouchableOpacity>
-
             <View style={styles.divider} />
 
             <TouchableOpacity
@@ -204,28 +208,27 @@ export const EnhancedVaultScreen: React.FC<EnhancedVaultScreenProps> = ({
   );
 };
 
-// Ensure this file exports VaultScreen
-export const VaultScreen = () => {
-  return (
-    <div>
-      {/* Add your VaultScreen implementation here */}
-      Vault Screen Content
-    </div>
-  );
-};
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...typography.bodyLarge,
+    color: colors.textSecondary,
+    marginTop: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingVertical: spacing.lg,
   },
   title: {
     ...typography.headline1,
@@ -263,9 +266,45 @@ const styles = StyleSheet.create({
     ...typography.bodyRegular,
     color: colors.textPrimary,
   },
+  clearIcon: {
+    fontSize: 18,
+    color: colors.textTertiary,
+    padding: spacing.xs,
+  },
   listContent: {
     paddingHorizontal: spacing.xxl,
     paddingBottom: spacing.xxl,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxxl * 2,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: spacing.lg,
+    opacity: 0.5,
+  },
+  emptyText: {
+    ...typography.headline2,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  emptySubtext: {
+    ...typography.bodyRegular,
+    color: colors.textTertiary,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  emptyButton: {
+    backgroundColor: colors.aquaPrimary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 12,
+  },
+  emptyButtonText: {
+    ...typography.bodyLarge,
+    color: colors.surface,
+    fontWeight: '600',
   },
   menuContent: {
     flex: 1,
@@ -291,8 +330,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   menuLabelDanger: {
-    color: colors.error,
     ...typography.bodyLarge,
+    color: colors.error,
     fontWeight: '500',
   },
   divider: {

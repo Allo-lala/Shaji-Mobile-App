@@ -11,6 +11,7 @@ import { UploadScreen } from '../screens/UploadScreen';
 import { VerificationResultScreen } from '../screens/VerificationResultScreen';
 import { VaultScreen } from '../screens/VaultScreen';
 import { ShareProofScreen } from '../screens/ShareProofScreen';
+import { QRScannerScreen } from '../screens/QRScannerScreen';
 import { colors } from '../theme';
 
 export type RootStackParamList = {
@@ -18,6 +19,7 @@ export type RootStackParamList = {
   Home: undefined;
   Verify: undefined;
   Upload: undefined;
+  QRScanner: undefined;
   VerificationResult: {
     status: 'verified' | 'unverified' | 'pending' | 'error';
     document?: any;
@@ -77,6 +79,16 @@ export const AppNavigator = () => {
             component={VerifyScreen}
             options={{
               title: 'Verify Paper',
+              headerShown: true,
+            }}
+          />
+
+          {/* QR Scanner Screen */}
+          <Stack.Screen
+            name="QRScanner"
+            component={QRScannerScreen}
+            options={{
+              title: 'Scan QR Code',
               headerShown: true,
             }}
           />

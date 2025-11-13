@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-// import DocumentPicker from 'react-native-document-picker';
 import { pick, types } from '@react-native-documents/picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing } from '../theme';
@@ -50,13 +49,25 @@ export const VerifyScreen: React.FC<VerifyScreenProps> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      // Simulate verification process
       setTimeout(async () => {
         const result = await aquaService.verifyDocument(document.uri);
 
+        // Create a proper document object for successful verification
+        const documentData = {
+          id: `doc_${Date.now()}`,
+          title: document.name,
+          author: 'Unknown Author',
+          timestamp: Date.now(),
+          hash: `0x${Math.random().toString(16).substr(2, 64)}`,
+          status: result.status,
+          filePath: document.uri,
+          fileSize: document.size,
+          witnesses: Math.floor(Math.random() * 5) + 1,
+        };
+
         navigation.navigate('VerificationResult', {
           status: result.status,
-          document: result.document,
+          document: result.status === 'verified' ? documentData : undefined,
           message: result.message,
         });
 
@@ -78,14 +89,28 @@ export const VerifyScreen: React.FC<VerifyScreenProps> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      // Simulate verification by code
       setTimeout(() => {
+        const isVerified = Math.random() > 0.3;
+        
+        const documentData = isVerified ? {
+          id: `doc_${Date.now()}`,
+          title: 'Verified Document',
+          author: 'Nyambua George',
+          institution: 'Strathmore University',
+          timestamp: Date.now(),
+          hash: verificationCode,
+          status: 'verified' as const,
+          filePath: '',
+          fileSize: 0,
+          witnesses: 5,
+        } : undefined;
+
         navigation.navigate('VerificationResult', {
-          status: Math.random() > 0.5 ? 'verified' : 'unverified',
-          message:
-            Math.random() > 0.5
-              ? 'Document verified successfully'
-              : 'Document verification failed',
+          status: isVerified ? 'verified' : 'unverified',
+          document: documentData,
+          message: isVerified
+            ? 'Document verified successfully'
+            : 'Document verification failed',
         });
 
         setLoading(false);
@@ -95,6 +120,10 @@ export const VerifyScreen: React.FC<VerifyScreenProps> = ({ navigation }) => {
       setLoading(false);
       Alert.alert('Error', 'Verification failed. Please try again.');
     }
+  };
+
+  const handleScanQR = () => {
+    navigation.navigate('QRScanner');
   };
 
   if (loading) {
@@ -202,10 +231,7 @@ export const VerifyScreen: React.FC<VerifyScreenProps> = ({ navigation }) => {
           {/* Scan QR Option */}
           <TouchableOpacity
             style={styles.scanButton}
-            onPress={() => {
-              // TODO: Implement QR scanner
-              Alert.alert('Coming Soon', 'QR code scanner will be available soon');
-            }}
+            onPress={handleScanQR}
             activeOpacity={0.8}
           >
             <Text style={styles.scanIcon}>📷</Text>

@@ -2,14 +2,14 @@ export const colors = {
   // Primary
   aquaPrimary: '#0636d4ff',
   aquaDeep: '#0852b2ff',
-  aquaLight: '#67E8F9',
+  aquaLight: '#4061f8ff',
   white: '#FFFFFF', 
   
   // Status
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
-  info: '#3B82F6',
+  info: '#1871ffff',
   
   // Neutrals
   background: '#F8FAFC',

@@ -7,54 +7,48 @@ import {
   ScrollView,
   Animated,
   TouchableOpacity,
-  Clipboard,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { colors, typography, spacing } from '../theme';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
-
-import type { RootNavigationProp, RootRouteProp } from '../types/navigation';
+import { Document, DocumentStatus } from '../types';
+import { useDocuments } from '../hooks/useDocuments';
 
 type VerificationResultScreenProps = {
-  navigation: RootNavigationProp<'VerificationResult'>;
-  route: RootRouteProp<'VerificationResult'>;
+  navigation: NativeStackNavigationProp<any>;
+  route: {
+    params: {
+      status: DocumentStatus;
+      document?: Document;
+      message?: string;
+    };
+  };
 };
-
 
 export const VerificationResultScreen: React.FC<VerificationResultScreenProps> = ({
   navigation,
   route,
 }) => {
   const { status, document, message } = route.params;
+  const { saveDocument } = useDocuments();
   const scaleAnim = useRef(new Animated.Value(0)).current;
-  const checkmarkAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Success animation
-    Animated.sequence([
+    Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
         tension: 50,
         friction: 7,
         useNativeDriver: true,
       }),
-      Animated.timing(checkmarkAnim, {
+      Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1.05,
-        tension: 100,
-        friction: 3,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 100,
-        friction: 3,
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start();
@@ -62,7 +56,7 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
     // Haptic feedback
     if (status === 'verified') {
       ReactNativeHapticFeedback.trigger('notificationSuccess');
-    } else if (status === 'unverified') {
+    } else if (status === 'unverified' || status === 'error') {
       ReactNativeHapticFeedback.trigger('notificationWarning');
     }
   }, [status]);
@@ -103,12 +97,6 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
 
   const config = getStatusConfig();
 
-  const copyToClipboard = (text: string) => {
-    Clipboard.setString(text);
-    ReactNativeHapticFeedback.trigger('impactLight');
-    // Show toast notification
-  };
-
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleDateString('en-US', {
@@ -120,127 +108,167 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
     });
   };
 
+  const handleSaveToVault = async () => {
+    if (!document) {
+      Alert.alert('Error', 'No document to save');
+      return;
+    }
+
+    try {
+      const success = await saveDocument(document);
+      if (success) {
+        Alert.alert(
+          'Saved!',
+          'Document has been saved to your vault',
+          [
+            {
+              text: 'View Vault',
+              onPress: () => navigation.navigate('Vault'),
+            },
+            { text: 'OK' },
+          ]
+        );
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save document');
+    }
+  };
+
+  const handleShareProof = () => {
+    if (!document) {
+      Alert.alert('Error', 'No document to share');
+      return;
+    }
+    navigation.navigate('ShareProof', { document });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           {/* Status Icon */}
           <Animated.View
             style={[
               styles.statusIconContainer,
               { backgroundColor: config.color },
-              { transform: [{ scale: scaleAnim }] },
+              {
+                transform: [{ scale: scaleAnim }],
+                opacity: fadeAnim,
+              },
             ]}
           >
             <Text style={styles.statusIcon}>{config.icon}</Text>
           </Animated.View>
 
           {/* Status Title */}
-          <Text style={[styles.statusTitle, { color: config.color }]}>
+          <Animated.Text
+            style={[
+              styles.statusTitle,
+              { color: config.color, opacity: fadeAnim },
+            ]}
+          >
             {config.title}
-          </Text>
+          </Animated.Text>
 
           {/* Status Message */}
-          <Text style={styles.statusMessage}>
+          <Animated.Text style={[styles.statusMessage, { opacity: fadeAnim }]}>
             {message || config.message}
-          </Text>
+          </Animated.Text>
 
           {/* Document Details - Only for verified documents */}
           {status === 'verified' && document && (
-            <Card style={styles.detailsCard}>
-              <Text style={styles.cardTitle}>📄 Document Details</Text>
+            <Animated.View style={{ opacity: fadeAnim, width: '100%' }}>
+              <Card style={styles.detailsCard}>
+                <Text style={styles.cardTitle}>📄 Document Details</Text>
 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Title:</Text>
-                <Text style={styles.detailValue}>{document.title}</Text>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>👤 Author:</Text>
-                <Text style={styles.detailValue}>{document.author}</Text>
-              </View>
-
-              {document.institution && (
-                <>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>🏛️  Institution:</Text>
-                    <Text style={styles.detailValue}>{document.institution}</Text>
-                  </View>
-                </>
-              )}
-
-              <View style={styles.divider} />
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>⏰ Notarized:</Text>
-                <Text style={styles.detailValue}>
-                  {formatDate(document.timestamp)}
-                </Text>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>🔗 Hash:</Text>
-                <TouchableOpacity
-                  onPress={() => copyToClipboard(document.hash)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.hashValue}>
-                    {document.hash.substring(0, 10)}...
-                    {document.hash.substring(document.hash.length - 4)}
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Title:</Text>
+                  <Text style={styles.detailValue} numberOfLines={2}>
+                    {document.title}
                   </Text>
-                </TouchableOpacity>
-              </View>
+                </View>
 
-              {document.witnesses && document.witnesses > 0 && (
-                <>
-                  <View style={styles.divider} />
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>👥 Witnesses:</Text>
-                    <Text style={styles.detailValue}>
-                      {document.witnesses} Network confirmations
+                <View style={styles.divider} />
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>👤 Author:</Text>
+                  <Text style={styles.detailValue}>{document.author}</Text>
+                </View>
+
+                {document.institution && (
+                  <>
+                    <View style={styles.divider} />
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>🏛️  Institution:</Text>
+                      <Text style={styles.detailValue}>{document.institution}</Text>
+                    </View>
+                  </>
+                )}
+
+                <View style={styles.divider} />
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>⏰ Notarized:</Text>
+                  <Text style={styles.detailValue}>
+                    {formatDate(document.timestamp)}
+                  </Text>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>🔗 Hash:</Text>
+                  <TouchableOpacity activeOpacity={0.7}>
+                    <Text style={styles.hashValue} numberOfLines={1}>
+                      {document.hash}
                     </Text>
-                  </View>
-                </>
-              )}
-            </Card>
+                  </TouchableOpacity>
+                </View>
+
+                {document.witnesses && document.witnesses > 0 && (
+                  <>
+                    <View style={styles.divider} />
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>👥 Witnesses:</Text>
+                      <Text style={styles.detailValue}>
+                        {document.witnesses} Network confirmations
+                      </Text>
+                    </View>
+                  </>
+                )}
+              </Card>
+            </Animated.View>
           )}
 
-          {/* Unverified Actions */}
+          {/* Unverified Info */}
           {status === 'unverified' && (
-            <Card style={styles.unverifiedCard}>
-              <Text style={styles.unverifiedTitle}>
-                This document may be:
-              </Text>
-              <Text style={styles.unverifiedItem}>• Not notarized</Text>
-              <Text style={styles.unverifiedItem}>
-                • Modified after notarization
-              </Text>
-              <Text style={styles.unverifiedItem}>
-                • Using invalid credentials
-              </Text>
-            </Card>
+            <Animated.View style={{ opacity: fadeAnim, width: '100%' }}>
+              <Card style={styles.unverifiedCard}>
+                <Text style={styles.unverifiedTitle}>
+                  This document may be:
+                </Text>
+                <Text style={styles.unverifiedItem}>• Not yet notarized</Text>
+                <Text style={styles.unverifiedItem}>
+                  • Modified after notarization
+                </Text>
+                <Text style={styles.unverifiedItem}>
+                  • Using invalid credentials
+                </Text>
+              </Card>
+            </Animated.View>
           )}
 
           {/* Action Buttons */}
-          <View style={styles.actions}>
+          <Animated.View style={[styles.actions, { opacity: fadeAnim }]}>
             {status === 'verified' && document && (
               <>
                 <Button
                   title="📤 Share Proof"
-                  onPress={() =>
-                    navigation.navigate('ShareProof', { document })
-                  }
+                  onPress={handleShareProof}
                 />
                 <Button
                   title="📥 Save to Vault"
-                  onPress={() => {
-                    // Save to vault logic
-                    navigation.navigate('Vault');
-                  }}
+                  onPress={handleSaveToVault}
                   variant="secondary"
                 />
               </>
@@ -258,7 +286,7 @@ export const VerificationResultScreen: React.FC<VerificationResultScreenProps> =
               onPress={() => navigation.navigate('Home')}
               variant="tertiary"
             />
-          </View>
+          </Animated.View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -334,6 +362,7 @@ const styles = StyleSheet.create({
   unverifiedCard: {
     width: '100%',
     marginBottom: spacing.xl,
+    backgroundColor: colors.warningBg,
   },
   unverifiedTitle: {
     ...typography.bodyLarge,
